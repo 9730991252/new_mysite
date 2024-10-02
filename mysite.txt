@@ -1,0 +1,173 @@
+134.209.147.69
+
+_______________________________________
+
+git pull
+sudo systemctl daemon-reload
+sudo systemctl restart mysite.com.gunicorn
+exit
+
+_______________________________________
+
+
+git clone https://github.com/9730991252/new_mysite.git
+
+-----------------------------------------------------
+
+mv new_mysite mysite
+
+
+_______________________________________
+********** Create Virtual env *****
+
+virtualenv venv
+
+********** Activate Virtual env ****
+
+source venv/bin/activate
+
+****************migrations******
+python3 manage.py makemigrations
+
+*********** migrate ********
+
+python3 manage.py migrate
+
+***** install django ******
+
+pip install django
+
+******** Install Gunicorn ******
+ 
+pip install gunicorn
+
+pip install requests
+
+*********** Deactivate Virtualenv *****
+
+deactivate
+
+
+************ Create System Socket File for Gunicorn *******
+
+Example:- sudo nano /etc/systemd/system/crenta.in.gunicorn.socket
+
+cd  /etc/systemd/system/
+
+sudo nano mysite.com.gunicorn.socket
+
+
+
+[Unit]
+Description=mysite.com.gunicorn socket
+
+[Socket]
+ListenStream=/run/mysite.com.gunicorn.sock
+
+[Install]
+WantedBy=sockets.target
+
+************** Create System Service File for Gunicorn ******
+Syntax:- sudo nano /etc/systemd/system/your_domain.gunicorn.service
+Example:- sudo nano /etc/systemd/system/narayaniorder.com.gunicorn.service
+
+cd  /etc/systemd/system/
+
+sudo nano mysite.com.gunicorn.service
+
+
+[Unit]
+Description=mysite.com.gunicorn daemon
+Requires=mysite.com.gunicorn.socket
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/mysite
+ExecStart=/root/mysite/venv/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/mysite.com.gunicorn.sock \
+          mysite.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+
+
+----------------------------------------------------------------
+sudo systemctl start mysite.com.gunicorn.socket
+
+sudo systemctl start mysite.com.gunicorn.service
+
+-----------------------------------------------------------------
+
+sudo systemctl enable mysite.com.gunicorn.socket
+
+sudo systemctl enable mysite.com.gunicorn.service
+
+-----------------------------------------------------------------------
+
+sudo systemctl status mysite.com.gunicorn.socket
+
+sudo systemctl status mysite.com.gunicorn.service
+
+-------------------------------------------
+
+sudo systemctl daemon-reload
+sudo systemctl restart mysite.com.gunicorn
+
+--------------------------------
+
+****************** Create Virtual Host File ******
+Syntax:- sudo nano /etc/nginx/sites-available/your_domain
+Example:- sudo nano /etc/nginx/sites-available/crenta.in
+
+
+cd /etc/nginx/sites-available
+
+sudo nano mysite.com
+
+server{
+    listen 80;
+    listen [::]:80;
+
+    server_name 134.209.147.69;
+    client_max_body_size 500M;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+
+    location / {
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://unix:/run/mysite.com.gunicorn.sock;
+    }
+
+    
+}
+
+-----------------------------------------------------
+
+
+########## Enable Virtual Host or Create Symbolic Link of Virtual Host File ########
+
+sudo ln -s /etc/nginx/sites-available/mysite.com /etc/nginx/sites-enabled/mysite.com
+
+%%%%%%%%%%%%%%%%%%%%% Check Configuration is Correct or Not %%%%%
+
+sudo nginx -t
+
+%%%%%%%%%%%% Restart Nginx %%%%%%%%%
+
+sudo service nginx restart
+
+********** restart ******
+
+sudo systemctl daemon-reload
+sudo systemctl restart mysite.com.gunicorn
+
+--------------------------------------- ssl ------------------
+
+sudo certbot --nginx
