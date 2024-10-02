@@ -41,8 +41,6 @@ pip install django
  
 pip install gunicorn
 
-pip install requests
-
 *********** Deactivate Virtualenv *****
 
 deactivate
